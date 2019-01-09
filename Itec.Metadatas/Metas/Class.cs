@@ -130,7 +130,7 @@ namespace Itec.Metas
             return this.Attributes.FirstOrDefault(p => p.GetType() == typeof(T)) as T;
         }
 
-        public 
+        
 
         public object CopyTo(Type targetType, object src, object dest=null, string fieldnames = null) {
             var copier = this.GetCopier(targetType,fieldnames);

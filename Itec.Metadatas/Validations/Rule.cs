@@ -6,17 +6,15 @@ namespace Itec.Validations
 {
     public abstract class Rule:IRule
     {
-        public Rule(string validType, object arguments,IChecker checker) {
+        public Rule(string validType, object arguments) {
             this.Type = validType;
             this.Arguments = arguments;
-            this._Checker = checker;
+            
         }
 
-        IChecker _Checker;
 
-        public bool Check(object input) {
-            return _Checker.Check(input, this.Arguments)
-        }
+
+        public abstract bool Check(object input);
 
         /// <summary>
         /// 验证类型

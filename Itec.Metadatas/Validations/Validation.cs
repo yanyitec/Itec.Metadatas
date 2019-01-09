@@ -6,43 +6,26 @@ namespace Itec.Validations
 {
     public class Validation : IValidation
     {
-        public Validation(string fieldnames, Func<object> targetGetter) {
+        public Validation(string fieldnames,string configName) {
             this.Fieldnames = fieldnames;
             this._Valids = new Dictionary<string, IList<IRule>>();
-            this._TargetGetter = targetGetter;
+            this.ConfigName = configName;
         }
 
         public string Fieldnames { get; private set; }
+        public string ConfigName { get; private set; }
 
         Dictionary<string, IList<IRule>> _Valids;
+
+        public bool IsValid { get; internal set; }
         public IDictionary<string, IList<IRule>> Valids { get { return _Valids; } }
 
-        public IList<IRule> this[string name] {
-            get {
-                IList<IRule> _results = null;
-                this._Valids.TryGetValue(name ,out _results);
-                return _results;
-            }
-        }
+        
 
-        public void AddValidation(string fieldname, IRule validation) {
-            IList<IRule> valids = null;
-            if (!_Valids.TryGetValue(fieldname, out valids)) {
-                _Valids.Add(fieldname, valids = new List<IRule>());
-            }
-            valids.Add(validation);
-            
-        }
-        Func<object> _TargetGetter;
-        object _target;
+        public void AddValid(string fieldname, IList<IRule> invalids) {
+            _Valids.Add(fieldname, invalids);
 
-        public object Target {
-            get {
-                if (_target == null) {
-                    _target = _TargetGetter();
-                }
-                return _target;
-            }
         }
+        
     }
 }

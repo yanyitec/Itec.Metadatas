@@ -2,7 +2,7 @@
 using System;
 using System.Linq;
 using System.Reflection;
-using Itec.Metadatas;
+using Itec.Metas;
 
 namespace Itec.Models
 {

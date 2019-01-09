@@ -8,15 +8,15 @@ using System.Text;
 
 namespace Itec.Datas
 {
-    public class ReadOnlyData : System.Dynamic.DynamicObject, IReadOnlyData
+    public class DataSource : System.Dynamic.DynamicObject, IDataSource
     {
         
-        public ReadOnlyData(JObject data = null)
+        public DataSource(JObject data = null)
         {
             this._Internals = data;
         }
 
-        public ReadOnlyData(string json)
+        public DataSource(string json)
         {
             this._Internals = json == null ? new JObject() : JObject.Parse(json);
         }
@@ -51,8 +51,9 @@ namespace Itec.Datas
 
 
 
-        public string GetString(string key)
+        public string GetString(string key=null)
         {
+            if (key == null) return this.Internals.ToString();
             var token = Internals[key];
             if (token == null || token.Type == JTokenType.Undefined || token.Type == JTokenType.Null) return null;
             return token.ToString();
@@ -60,7 +61,8 @@ namespace Itec.Datas
 
 
 
-        public JToken GetJToken(string key) {
+        public object GetRaw(string key) {
+            if (key == null) return this.Internals;
             return this.Internals[key];
         }
 
@@ -68,16 +70,26 @@ namespace Itec.Datas
 
 
 
-        public T Get<T>(string key)
+        public T Get<T>(string key=null)
         {
+            if (key == null) return Internals.ToObject<T>();
             var token = Internals[key];
             if (token == null || token.Type == JTokenType.Undefined || token.Type == JTokenType.Null) return default(T);
             return token.ToObject<T>();
         }
 
-
-        public object Get(string key, Type type)
+        public Noneable<T> GetNoneable<T>(string key = null)
         {
+            if (key == null) return Internals.ToObject<T>();
+            var token = Internals[key];
+            if (token == null || token.Type == JTokenType.Undefined || token.Type == JTokenType.Null) return new Noneable<T>();
+            return token.ToObject<T>();
+        }
+
+
+        public object Get( Type type, string key=null)
+        {
+            if (key == null) return this.Internals.ToObject(type);
             var token = Internals[key];
             if (token == null || token.Type == JTokenType.Undefined || token.Type == JTokenType.Null) return null;
 
@@ -89,7 +101,7 @@ namespace Itec.Datas
             return this.Internals.ToString();
         }
 
-        public static implicit  operator JObject(ReadOnlyData me){
+        public static implicit  operator JObject(DataSource me){
             return me._Internals;
         }
 
@@ -103,7 +115,7 @@ namespace Itec.Datas
 
         public override bool TryGetMember(GetMemberBinder binder, out object result)
         {
-            result = this.Get(binder.Name, binder.ReturnType);
+            result = this.Get( binder.ReturnType, binder.Name);
             return true;
         }
 
@@ -116,7 +128,7 @@ namespace Itec.Datas
         {
             var key = indexes[0];
 
-            result = this.Get(key == null ? null : key.ToString(), binder.ReturnType);
+            result = this.Get(binder.ReturnType,key == null ? null : key.ToString());
             return true;
         }
 
@@ -144,7 +156,7 @@ namespace Itec.Datas
 
         #region enumeratable
         public class Enumerator:IEnumerator<KeyValuePair<string, object>> {
-            public Enumerator(ReadOnlyData state) {
+            public Enumerator(DataSource state) {
                 this.InnerEnumerator = state._Internals?.GetEnumerator();
             }
 

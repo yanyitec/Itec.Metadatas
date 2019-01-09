@@ -8,5 +8,9 @@ namespace Itec
     {
         string this[string key] { get; }
         int Count { get; }
+
+        string ToJSON();
+
+        string ToString();
     }
 }

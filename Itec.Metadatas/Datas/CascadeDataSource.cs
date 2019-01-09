@@ -6,24 +6,24 @@ using System.Text;
 
 namespace Itec.Datas
 {
-    public class CascadeReadOnlyData:ReadOnlyData, ICascadeData
+    public class CascadeDataSource:DataSource, ICascadeDataSource
     {
-        public CascadeReadOnlyData(CascadeReadOnlyData super) : base()
+        public CascadeDataSource(CascadeDataSource super) : base()
         {
             this.Super = super;
         }
         
-        public CascadeReadOnlyData(JObject data = null, CascadeReadOnlyData super=null) : base(data)
+        public CascadeDataSource(JObject data = null, CascadeDataSource super=null) : base(data)
         {
             this.Super = super;
         }
 
-        public CascadeReadOnlyData(string json, CascadeReadOnlyData super=null) : base(json)
+        public CascadeDataSource(string json, CascadeDataSource super=null) : base(json)
         {
             this.Super = super;
         }
 
-        public ICascadeData Super { get; private set; }
+        public ICascadeDataSource Super { get; private set; }
 
         public T Overall<T>(string key)
         {
@@ -67,7 +67,7 @@ namespace Itec.Datas
                     if (!target.ContainsKey(pair.Key)) target.Add(pair.Key,pair.Value);
                 }
             }
-            if (this.Super != null) (this.Super as CascadeReadOnlyData).MergeTo(target);
+            if (this.Super != null) (this.Super as CascadeDataSource).MergeTo(target);
             return target;
         }
 

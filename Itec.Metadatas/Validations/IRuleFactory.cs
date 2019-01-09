@@ -4,8 +4,8 @@ using System.Text;
 
 namespace Itec.Validations
 {
-    public interface ICheckerFactory
+    public interface IRuleFactory
     {
-        IChecker GetChecker(string fieldnames);
+        IRule GetRule(string typeName,object ruleArguments=null);
     }
 }

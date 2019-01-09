@@ -3,6 +3,7 @@ using Itec.Metas;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 
@@ -10,37 +11,70 @@ namespace Itec.Validations
 {
     public class Validator
     {
-        public Validator(string fieldnames, Class cls, IReadOnlyData configs, ICheckerFactory checkerFactory) {
+        public Validator(string fieldnames,string configName, Class cls, IDataSource configs, IRuleFactory checkerFactory) {
             this.Fieldnames = fieldnames;
             this.Class = cls;
-            this.CheckerFactory = checkerFactory;
+            this.Configs = configs;
+            this.RuleFactory = checkerFactory;
+            this.ConfigName = configName;
         }
         public Class Class { get; private set; }
         public string Fieldnames { get; private set; }
 
-        public ICheckerFactory CheckerFactory { get; private set; }
+        public IRuleFactory RuleFactory { get; private set; }
 
-        public IReadOnlyData Configs { get; private set; }
+        public IDataSource Configs { get; private set; }
 
-        Func<IValueProvider, Validation> _Validate;
-        public IValidation Validate(IValueProvider vp) {
-            return _Validate(vp);
-        }
+        public string ConfigName { get; private set; }
 
-        static Expression MakeValidate(Validator validator) {
-            var fieldnames = validator.Fieldnames;
-            var fields = fieldnames.Split(',');
-            var codes = new List<Expression>();
-            var locals = new List<ParameterExpression>();
-            foreach (var fieldname in fields) {
-                var field = fieldname.Trim();
-                if (string.IsNullOrEmpty(field)) continue;
-                var prop = validator.Class[field];
-                if (prop == null) continue;
+        Func<IDataSource, Validation> _Validate;
+        public IValidation Validate(IDataSource inputs) {
+            if (_Validate == null) {
+                lock (this) {
+                    if (_Validate == null) _Validate = MakeValidate();
+                }
             }
+            return _Validate(inputs);
         }
 
-        static void MakeValidate(Validator validator,Property prop, List<Expression> codes, List<ParameterExpression> locals,ParameterExpression targetExpr) {
+         Func<IDataSource,Validation> MakeValidate() {
+            var fieldnames = this.Fieldnames;
+            var fields = fieldnames.Split(',');
+            var valids = new Dictionary<string, FieldValidator>();
+            foreach (var prop in this.Class) {
+                if (!fields.Contains(prop.Name)) continue;
+                var fieldConfig = this.Configs.GetRaw(prop.Name) as JObject;
+                var fieldValidator = MakeFieldValidator(prop,fieldConfig);
+                var isRange = fieldConfig["QueryType"];
+                if (isRange == null || isRange.Type == JTokenType.Null || isRange.Type == JTokenType.Undefined || isRange.ToString()!="Range") {
+                    valids.Add(prop.Name,fieldValidator);
+                } else {
+                    var minKey = prop.Name + "_MIN";
+                    valids.Add(minKey,fieldValidator.Clone(true));
+                    var maxKey = prop.Name + "_MAX";
+                    valids.Add(maxKey,fieldValidator.Clone(true));
+                }
+            }
+            
+            return new Func<IDataSource,Validation>((inputs)=> {
+                var rs = new Validation(this.Fieldnames, this.ConfigName);
+                bool isValid = true;
+                foreach (var pair in valids) {
+                    var value = inputs.GetRaw(pair.Key);
+                    var invalids = pair.Value.Validate(value);
+                    if (invalids!=null && invalids.Count > 0)
+                    {
+                        isValid = false;
+                        rs.AddValid(pair.Key, invalids);
+                    }
+
+                }
+                rs.IsValid = isValid;
+                return rs;
+            });
+        }
+
+        FieldValidator MakeFieldValidator(Property prop,JObject fieldConfig) {
             /*
              
              */
@@ -49,29 +83,29 @@ namespace Itec.Validations
                 rules.Add(rule);
             }
 
-            var token = validator.Configs.GetJToken(prop.Name) as JObject;
-            if (!(token == null || token.Type == JTokenType.Undefined || token.Type == JTokenType.Null)) {
-                var cRules = token["Rules"] as JArray;
-                if (!(cRules == null || cRules.Type == JTokenType.Undefined || cRules.Type == JTokenType.Null))
+            var cRules = fieldConfig ==null?null:fieldConfig["Rules"] as JArray;
+            if (!(cRules == null || cRules.Type == JTokenType.Undefined || cRules.Type == JTokenType.Null))
+            {
+                for (var i = 0; i < cRules.Count; i++)
                 {
-                    for (var i = 0; i < cRules.Count; i++)
+                    var ruleConfig = cRules[i];
+                    if (!(ruleConfig == null || ruleConfig.Type == JTokenType.Undefined || ruleConfig.Type == JTokenType.Null))
                     {
-                        var ruleConfig = cRules[i];
-                        if (!(ruleConfig == null || ruleConfig.Type == JTokenType.Undefined || ruleConfig.Type == JTokenType.Null))
+                        var typeJ = ruleConfig["Type"];
+                        if (!(typeJ == null || typeJ.Type == JTokenType.Undefined || typeJ.Type == JTokenType.Null))
                         {
-                            var typeJ = ruleConfig["Type"];
-                            if (!(typeJ == null || typeJ.Type == JTokenType.Undefined || typeJ.Type == JTokenType.Null))
-                            {
-                                
+                            var typeName = typeJ.ToString().ToLower();
+                            if (rules.Any(p => p.Type == typeName)) continue;
+                            var rule = this.RuleFactory.GetRule(typeName, ruleConfig);
+                            if (rule == null) continue;
+                            rules.Add(rule);
 
-                            }
                         }
                     }
                 }
-                
             }
-            
 
+            return new FieldValidator(prop,rules);
         }
 
     }

@@ -7,20 +7,20 @@ using System.Text;
 
 namespace Itec.Datas
 {
-    public class Data :   ReadOnlyData, IData
+    public class RWDataSource :   DataSource, IRWDataSource
     {
         
-        public Data(JObject data = null):base(data)
+        public RWDataSource(JObject data = null):base(data)
         {
         }
 
-        public Data(string json):base(json)
+        public RWDataSource(string json):base(json)
         {
         }
 
 
 
-        public IData Remove(string key) {
+        public IRWDataSource Remove(string key) {
             this.Internals.Remove(key);
             this.HasChanges = true;
             return this;
@@ -33,13 +33,13 @@ namespace Itec.Datas
 
         
 
-        public IData SetString(string key, string value) {
+        public IRWDataSource SetString(string key, string value) {
             Internals[key] = value;
             this.HasChanges = true;
             return this;
         }
 
-        public IData SetJToken(string key, JToken value)
+        public IRWDataSource SetJToken(string key, JToken value)
         {
             Internals[key] = value;
             this.HasChanges = true;
@@ -48,7 +48,7 @@ namespace Itec.Datas
 
 
 
-        public IData Set<T>(string key, T value)
+        public IRWDataSource Set<T>(string key, T value)
         {
             var token = JToken.FromObject(value);
             this.Internals[key] = token;
@@ -58,7 +58,7 @@ namespace Itec.Datas
 
         
 
-        public IData Set(string key, object value)
+        public IRWDataSource Set(string key, object value)
         {
             var token = JToken.FromObject(value);
             this.Internals[key] = token;

@@ -19,6 +19,25 @@ namespace Itec.Metas
         
         public MemberInfo MemberInfo { get;private set; }
         public string Name { get { return this.MemberInfo.Name; } }
+        Type _PropertyType;
+        public Type PropertyType {
+            get {
+                if (_PropertyType == null) {
+                    lock (this) {
+                        if (_PropertyType == null) {
+                            if (MemberInfo.MemberType == MemberTypes.Property)
+                            {
+                                _PropertyType = (this.MemberInfo as PropertyInfo).PropertyType;
+                            }
+                            else if (MemberInfo.MemberType == MemberTypes.Field) {
+                                _PropertyType = (this.MemberInfo as FieldInfo).FieldType;
+                            }
+                        }
+                    }
+                }
+                return _PropertyType;
+            }
+        }
 
         List<Attribute> _Attributes;
         public IReadOnlyList<Attribute> Attributes {
@@ -62,7 +81,7 @@ namespace Itec.Metas
                 var at = -1;
                 for (int i = 0; i < _Validators.Count; i++) {
                     var existed = _Validators[i];
-                    if (existed.ValidType == validator.ValidType) {
+                    if (existed.Type == validator.Type) {
                         at = i;break;
                     }
                 }

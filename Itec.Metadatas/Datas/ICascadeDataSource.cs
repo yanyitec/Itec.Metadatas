@@ -4,9 +4,9 @@ using System.Text;
 
 namespace Itec.Datas
 {
-    public interface ICascadeReadOnlyData:IReadOnlyData
+    public interface ICascadeDataSource:IDataSource
     {
-        ICascadeReadOnlyData Super { get; }
+        ICascadeDataSource Super { get; }
         T Overall<T>(string key);
         string OverallString(string key);
         object Overall(string key, Type objectType);
